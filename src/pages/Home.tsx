@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type PointerEvent } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -12,15 +12,24 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { ProjectArtwork } from "@/components/ProjectArtwork";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { usePortfolioMotion } from "@/hooks/usePortfolioMotion";
-import { trpc, type PublicPortfolio, type PortfolioProject } from "@/providers/trpc";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  trpc,
+  type PublicPortfolio,
+  type PortfolioProject,
+} from "@/providers/trpc";
+import "./studio-home.css";
 
 const fallbackProfile = {
   name: "Anwar Ul Haq",
   headline: "Full-Stack AI Engineer",
-  subheadline: "MERN Stack Developer · AI Engineer",
+  subheadline: "MERN Stack Developer, AI Engineer",
   bio: "I build practical, reliable software across full-stack web development and applied artificial intelligence.",
   location: "Pakistan",
   email: "au090469@gmail.com",
@@ -30,27 +39,94 @@ const fallbackProfile = {
   availability: "Building intelligent software, end to end.",
 };
 
-const navItems = [
-  { label: "Work", href: "#work" },
-  { label: "Expertise", href: "#expertise" },
-  { label: "About", href: "#about" },
-  { label: "Journal", href: "#journal" },
-];
+const fallbackStack = ["React", "Node.js", "TypeScript", "Python"];
 
 type Blog = PublicPortfolio["blogs"][number];
 
+const skillCategories: Record<string, string> = {
+  Frontend: "Frontend",
+  Backend: "Backend and APIs",
+  "AI & Data": "Applied AI",
+  Data: "Data and infrastructure",
+  Languages: "Languages and tooling",
+  Tools: "Languages and tooling",
+};
+
+const categoryOrder = [
+  "Frontend",
+  "Backend and APIs",
+  "Applied AI",
+  "Data and infrastructure",
+  "Languages and tooling",
+];
+
+const approach = [
+  [
+    "Understand the problem",
+    "Get clear on who it is for, what the constraints are, and what done looks like before picking tools.",
+  ],
+  [
+    "Build it deliberately",
+    "Usable interfaces, predictable APIs, and code that someone else can pick up and maintain.",
+  ],
+  [
+    "Test it and improve it",
+    "Check the result against real use, learn from what breaks, and keep refining.",
+  ],
+];
+
+const techOf = (project: PortfolioProject, max?: number) => {
+  const list = project.technologies
+    .split(",")
+    .map(item => item.trim())
+    .filter(Boolean);
+  return max ? list.slice(0, max) : list;
+};
+
+function ProjectImage({
+  project,
+  thumb = false,
+}: {
+  project: PortfolioProject;
+  thumb?: boolean;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  if (project.imageUrl && !failed) {
+    return (
+      <img
+        className="studio-img"
+        src={project.imageUrl}
+        alt={thumb ? "" : `${project.title} screenshot`}
+        loading="lazy"
+        decoding="async"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`studio-img-fallback ${thumb ? "studio-img-fallback--thumb" : ""}`}
+    >
+      <strong>{project.title}</strong>
+      {!thumb && <small>{techOf(project, 3).join(", ")}</small>}
+    </div>
+  );
+}
+
 export default function Home() {
-  const { data, isLoading, isError, refetch } = trpc.portfolio.public.useQuery();
+  const { data, isLoading, isError, refetch } =
+    trpc.portfolio.public.useQuery();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<PortfolioProject | null>(null);
+  const [filter, setFilter] = useState("All");
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null);
   const [copied, setCopied] = useState(false);
 
-  usePortfolioMotion(data?.projects.length);
-
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    const onScroll = () => setScrolled(window.scrollY > 16);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -61,254 +137,648 @@ export default function Home() {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setMenuOpen(false);
     };
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
   }, [menuOpen]);
 
   const profile = data?.profile ?? fallbackProfile;
+
   const groupedSkills = useMemo(() => {
     const groups = new Map<string, PublicPortfolio["skills"]>();
-    const categories: Record<string, string> = {
-      Frontend: "Frontend Engineering",
-      Backend: "Backend & APIs",
-      "AI & Data": "Applied AI & Machine Learning",
-      Data: "Databases & Infrastructure",
-      Languages: "Languages & Developer Tooling",
-      Tools: "Languages & Developer Tooling",
-    };
     data?.skills.forEach(skill => {
-      const category = categories[skill.category] ?? skill.category;
+      const category = skillCategories[skill.category] ?? skill.category;
       groups.set(category, [...(groups.get(category) ?? []), skill]);
     });
-    const order = [
-      "Frontend Engineering",
-      "Backend & APIs",
-      "Applied AI & Machine Learning",
-      "Databases & Infrastructure",
-      "Languages & Developer Tooling",
-    ];
     return Array.from(groups.entries()).sort(([first], [second]) => {
-      const firstIndex = order.indexOf(first);
-      const secondIndex = order.indexOf(second);
-      if (firstIndex === -1 && secondIndex === -1) return first.localeCompare(second);
-      return (firstIndex === -1 ? order.length : firstIndex) - (secondIndex === -1 ? order.length : secondIndex);
+      const firstIndex = categoryOrder.indexOf(first);
+      const secondIndex = categoryOrder.indexOf(second);
+      return (
+        (firstIndex < 0 ? categoryOrder.length : firstIndex) -
+        (secondIndex < 0 ? categoryOrder.length : secondIndex)
+      );
     });
   }, [data?.skills]);
 
-  const leadProjects = useMemo(() => {
-    if (!data) return [];
-    const featured = data.projects.filter(project => project.featured);
-    return (featured.length ? featured : data.projects.slice(0, 3)).slice(0, 4);
-  }, [data]);
-  const otherProjects = useMemo(() => data?.projects.filter(project => !leadProjects.some(lead => lead.id === project.id)) ?? [], [data, leadProjects]);
-  const selectedCase = selectedProject ? data?.caseStudies.find(item => item.projectId === selectedProject.id) : undefined;
+  // Featured work leads the gallery; order is otherwise unchanged.
+  const projects = useMemo(
+    () =>
+      [...(data?.projects ?? [])].sort(
+        (a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured))
+      ),
+    [data?.projects]
+  );
+
+  const categories = useMemo(() => {
+    const counts = new Map<string, number>();
+    projects.forEach(p =>
+      counts.set(p.category, (counts.get(p.category) ?? 0) + 1)
+    );
+    return Array.from(counts.entries());
+  }, [projects]);
+
+  const visibleProjects = useMemo(
+    () =>
+      filter === "All" ? projects : projects.filter(p => p.category === filter),
+    [projects, filter]
+  );
+
+  const selectedProject =
+    previewIndex !== null ? (visibleProjects[previewIndex] ?? null) : null;
+  const selectedCase = selectedProject
+    ? data?.caseStudies.find(item => item.projectId === selectedProject.id)
+    : undefined;
+
+  const step = (direction: 1 | -1) => {
+    if (previewIndex === null || visibleProjects.length === 0) return;
+    setPreviewIndex(
+      (previewIndex + direction + visibleProjects.length) %
+        visibleProjects.length
+    );
+  };
+
+  const heroStack = useMemo(() => {
+    const names = (data?.skills ?? []).slice(0, 4).map(skill => skill.name);
+    return names.length ? names : fallbackStack;
+  }, [data?.skills]);
 
   const copyEmail = async () => {
-    await navigator.clipboard.writeText(profile.email);
-    setCopied(true);
-    toast.success("Email copied to clipboard");
-    window.setTimeout(() => setCopied(false), 1800);
+    try {
+      await navigator.clipboard.writeText(profile.email);
+      setCopied(true);
+      toast.success("Email copied");
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Couldn't copy. Use the email link instead.");
+    }
+  };
+
+  // Pointer tilt for the 3D hero. Mouse only; touch devices keep the resting pose.
+  const tilt = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== "mouse") return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width - 0.5;
+    const y = (event.clientY - rect.top) / rect.height - 0.5;
+    event.currentTarget.style.setProperty("--ry", `${(x * 18).toFixed(2)}deg`);
+    event.currentTarget.style.setProperty("--rx", `${(-y * 14).toFixed(2)}deg`);
+  };
+  const resetTilt = (event: PointerEvent<HTMLDivElement>) => {
+    event.currentTarget.style.removeProperty("--ry");
+    event.currentTarget.style.removeProperty("--rx");
   };
 
   if (isLoading) return <PortfolioLoader />;
-  if (isError || !data) return <PortfolioError onRetry={() => void refetch()} />;
+  if (isError || !data)
+    return <PortfolioError onRetry={() => void refetch()} />;
+
+  const navItems = [
+    { label: "Work", href: "#work" },
+    { label: "Skills", href: "#skills" },
+    { label: "About", href: "#about" },
+    ...(data.blogs.length ? [{ label: "Notes", href: "#notes" }] : []),
+  ];
 
   return (
-    <div className="portfolio-shell">
-      <header className={`site-header ${scrolled ? "is-scrolled" : ""}`}>
-        <a href="#top" className="brand-mark" aria-label={`${profile.name}, back to top`}><span>anwar</span><b>.</b></a>
-        <nav className="pill-nav" aria-label="Main navigation">
-          {navItems.map(item => <a key={item.href} href={item.href}>{item.label}</a>)}
-        </nav>
-        <div className="header-actions">
-          <a className="header-contact" href="#contact">Get in touch <ArrowUpRight size={15} /></a>
-          <button className="mobile-menu-button" onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation" aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}>
-            {menuOpen ? <X size={21} /> : <Menu size={21} />}
-          </button>
+    <div className="studio-site" id="top">
+      <a className="studio-skip-link" href="#main-content">
+        Skip to content
+      </a>
+
+      <header
+        className={`studio-header ${scrolled ? "studio-header--scrolled" : ""}`}
+      >
+        <div className="studio-container studio-header-inner">
+          <a
+            className="studio-logo"
+            href="#top"
+            aria-label={`${profile.name}, back to top`}
+          >
+            anwar<span className="studio-logo-dot">.</span>
+            <span className="studio-logo-suffix">dev</span>
+          </a>
+          <nav className="studio-desktop-nav" aria-label="Main navigation">
+            {navItems.map(item => (
+              <a key={item.href} href={item.href}>
+                {item.label}
+              </a>
+            ))}
+          </nav>
+          <div className="studio-header-actions">
+            <a className="studio-header-contact" href="#contact">
+              Contact
+            </a>
+            <button
+              className="studio-menu-button"
+              type="button"
+              onClick={() => setMenuOpen(current => !current)}
+              aria-expanded={menuOpen}
+              aria-controls="studio-mobile-nav"
+              aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+            >
+              {menuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          </div>
         </div>
-        <nav id="mobile-navigation" className="mobile-nav" aria-label="Mobile navigation" hidden={!menuOpen}>
-          {[...navItems, { label: "Contact", href: "#contact" }].map(item => <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)}>{item.label}<ArrowUpRight size={16} /></a>)}
-        </nav>
+        {menuOpen && (
+          <nav
+            className="studio-mobile-nav"
+            id="studio-mobile-nav"
+            aria-label="Mobile navigation"
+          >
+            {[...navItems, { label: "Contact", href: "#contact" }].map(item => (
+              <a
+                key={item.href}
+                href={item.href}
+                onClick={() => setMenuOpen(false)}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        )}
       </header>
 
-      <main id="top">
-        <section className="hero-section">
-          <div className="hero-grid page-width">
-            <div className="hero-copy">
-              <p className="hero-name">{profile.location} · {profile.headline}</p>
-              <h1>Building useful software, thoughtfully.</h1>
-              <div className="hero-intro">
-                <p>I’m {profile.name}, focused on full-stack web applications and applied AI. I work from the first interface through the systems that make a product dependable.</p>
+      <main id="main-content">
+        <section className="studio-hero" aria-labelledby="studio-hero-title">
+          <div className="studio-container studio-hero-grid">
+            <div className="studio-hero-copy">
+              <p className="studio-hero-name">Hi, I'm {profile.name}.</p>
+              <h1 id="studio-hero-title">
+                I build full-stack web apps and the AI inside them.
+              </h1>
+              <p className="studio-hero-description">{profile.bio}</p>
+              <div className="studio-hero-ctas">
+                <a
+                  className="studio-button studio-button--primary"
+                  href="#work"
+                >
+                  View projects
+                </a>
+                <a
+                  className="studio-button studio-button--text"
+                  href="#contact"
+                >
+                  Get in touch
+                </a>
               </div>
-              <div className="hero-actions">
-                <a className="button-primary" href="#work">View projects <ArrowRight size={17} /></a>
-                <a className="button-secondary" href="#contact">Get in touch <ArrowUpRight size={17} /></a>
-              </div>
-              <p className="hero-availability">{profile.availability}</p>
             </div>
-            <div className="hero-portrait-wrap" data-reveal>
-              <img className="hero-portrait" src={profile.avatarUrl || fallbackProfile.avatarUrl} alt={`Portrait of ${profile.name}`} />
-              <p className="portrait-caption">Full-stack development <span aria-hidden="true">·</span> Applied AI</p>
+
+            <div
+              className="studio-scene"
+              onPointerMove={tilt}
+              onPointerLeave={resetTilt}
+            >
+              <div className="studio-stage">
+                <div
+                  className="studio-layer studio-layer--plate"
+                  aria-hidden="true"
+                >
+                  <div />
+                </div>
+                <div className="studio-layer studio-layer--photo">
+                  <img
+                    src={profile.avatarUrl || fallbackProfile.avatarUrl}
+                    alt={`Portrait of ${profile.name}`}
+                    fetchPriority="high"
+                    decoding="async"
+                  />
+                </div>
+                <div
+                  className="studio-layer studio-layer--code"
+                  aria-hidden="true"
+                >
+                  <div className="studio-code-bar">
+                    <i />
+                    <i />
+                    <i />
+                  </div>
+                  <div className="studio-code-body">
+                    <p>
+                      <span className="k">const</span> dev = {"{"}
+                    </p>
+                    <p className="indent">
+                      role: <span className="s">"{profile.headline}"</span>,
+                    </p>
+                    <p className="indent">
+                      based: <span className="s">"{profile.location}"</span>,
+                    </p>
+                    <p>{"}"}</p>
+                  </div>
+                </div>
+                <ul
+                  className="studio-layer studio-layer--stack"
+                  aria-label="Core stack"
+                  style={{ listStyle: "none", margin: 0 }}
+                >
+                  {heroStack.map(name => (
+                    <li key={name} style={{ display: "contents" }}>
+                      <span>{name}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="studio-layer studio-layer--label">
+                  <strong>{profile.name}</strong>
+                  <span>{profile.headline}</span>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        <section id="work" className="work-section section-space">
-          <div className="page-width section-heading" data-reveal>
-            <p className="mono-label">Selected work</p>
-            <h2>Projects shaped around<br /><span>real problems.</span></h2>
-            <p>A selection of product and engineering work, from AI-assisted workflows to community platforms.</p>
-          </div>
-          <div className="project-list page-width">
-            {leadProjects.map((project, index) => (
-              <article className="project-showcase" key={project.id}>
-                <div className="project-title-row">
-                  <span>{String(index + 1).padStart(2, "0")}</span>
-                  <h3>{project.title}</h3>
-                  <p>{project.category}</p>
-                </div>
-                <div className={`project-body ${index % 2 ? "project-reverse" : ""}`}>
-                  <button className="project-visual-button" onClick={() => setSelectedProject(project)} aria-label={`Open ${project.title} case study`} data-reveal>
-                    <ProjectArtwork project={project} />
+        <section
+          id="work"
+          className="studio-work studio-section"
+          aria-labelledby="studio-work-heading"
+        >
+          <div className="studio-container">
+            <div className="studio-section-header">
+              <h2 id="studio-work-heading">Projects</h2>
+              <p>
+                Product builds and experiments. Open any project for the
+                screenshots, stack, and write-up.
+              </p>
+            </div>
+
+            {categories.length > 1 && (
+              <div
+                className="studio-filters"
+                role="group"
+                aria-label="Filter projects by category"
+              >
+                <button
+                  type="button"
+                  className="studio-filter"
+                  aria-pressed={filter === "All"}
+                  onClick={() => setFilter("All")}
+                >
+                  All<small>{projects.length}</small>
+                </button>
+                {categories.map(([category, count]) => (
+                  <button
+                    key={category}
+                    type="button"
+                    className="studio-filter"
+                    aria-pressed={filter === category}
+                    onClick={() => setFilter(category)}
+                  >
+                    {category}
+                    <small>{count}</small>
                   </button>
-                  <div className="project-summary" data-reveal>
-                    <p className="project-lead">{project.summary}</p>
-                    <div className="tech-list">{project.technologies.split(",").filter(Boolean).map(tech => <span key={tech.trim()}>{tech.trim()}</span>)}</div>
-                    <div className="project-links">
-                      <button className="text-link" onClick={() => setSelectedProject(project)}>Read case study <ArrowRight size={17} /></button>
-                      {project.liveUrl && <a className="icon-text-link" href={project.liveUrl} target="_blank" rel="noreferrer">Live project <ArrowUpRight size={16} /></a>}
-                      {project.repoUrl && <a className="icon-text-link" href={project.repoUrl} target="_blank" rel="noreferrer">Source <Github size={15} /></a>}
-                    </div>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-          {otherProjects.length > 0 && (
-            <div className="other-work page-width" data-reveal>
-              <h3>More projects</h3>
-              {otherProjects.map(project => (
-                <div className="other-work-row" key={project.id}>
-                  <div><span>{project.category}</span><h4>{project.title}</h4></div>
-                  <p>{project.summary}</p>
-                  <div className="other-work-actions">
-                    <button onClick={() => setSelectedProject(project)} aria-label={`Read about ${project.title}`}><ArrowRight size={19} /></button>
-                    {project.liveUrl && <a href={project.liveUrl} target="_blank" rel="noreferrer" aria-label={`Visit ${project.title}`}><ArrowUpRight size={19} /></a>}
-                  </div>
-                </div>
+                ))}
+              </div>
+            )}
+
+            <ul className="studio-gallery" key={filter}>
+              {visibleProjects.map((project, index) => (
+                <li
+                  className="studio-tile-wrap"
+                  key={project.id}
+                  style={{ ["--i" as string]: index }}
+                >
+                  <button
+                    type="button"
+                    className="studio-tile"
+                    onClick={() => setPreviewIndex(index)}
+                    aria-label={`Open ${project.title}`}
+                  >
+                    <span className="studio-tile-media">
+                      <ProjectImage project={project} />
+                      <span className="studio-tile-open" aria-hidden="true">
+                        Preview
+                      </span>
+                    </span>
+                    <span className="studio-tile-caption">
+                      <span className="studio-tile-title">{project.title}</span>
+                      <span className="studio-tile-cat">
+                        {project.category}
+                      </span>
+                    </span>
+                    <span className="studio-tile-summary">
+                      {project.summary}
+                    </span>
+                  </button>
+                </li>
               ))}
-            </div>
-          )}
-          {leadProjects.length === 0 && <p className="empty-message page-width">Projects will be added here soon.</p>}
+            </ul>
+            {visibleProjects.length === 0 && (
+              <p className="studio-empty-state">
+                Projects will appear here once they're published.
+              </p>
+            )}
+          </div>
         </section>
 
-        <section id="expertise" className="expertise-section section-space">
-          <div className="page-width expertise-layout">
-            <div className="expertise-intro" data-reveal>
-              <p className="mono-label">Areas of practice</p>
-              <h2>Tools for<br />the work.</h2>
-              <p>My day-to-day skills span interface engineering, APIs, data, and applied AI. The technologies below come from my current portfolio profile.</p>
-              <a href={profile.githubUrl} target="_blank" rel="noreferrer" className="text-link">Explore GitHub <ArrowUpRight size={17} /></a>
+        <section
+          id="skills"
+          className="studio-expertise studio-section"
+          aria-labelledby="studio-skills-heading"
+        >
+          <div className="studio-container studio-expertise-grid">
+            <div className="studio-expertise-heading">
+              <h2 id="studio-skills-heading">What I work with</h2>
+              <p>
+                Different tools, same approach: understand the problem, pick
+                what fits, and make the result reliable.
+              </p>
+              {profile.githubUrl && (
+                <a
+                  href={profile.githubUrl}
+                  className="studio-inline-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  See my GitHub <ArrowUpRight size={16} />
+                </a>
+              )}
             </div>
-            <div className="skill-matrix">
-              {groupedSkills.map(([category, categorySkills], groupIndex) => (
-                <div className="skill-group" key={category} data-reveal data-delay={groupIndex * 60}>
-                  <div className="skill-group-heading"><h3>{category}</h3></div>
-                  <ul className="skill-tags">
-                    {categorySkills.map(skill => <li key={skill.id}>{skill.name}</li>)}
+            <div className="studio-skill-groups">
+              {groupedSkills.map(([category, skills]) => (
+                <div className="studio-skill-group" key={category}>
+                  <h3>{category}</h3>
+                  <ul>
+                    {skills.map(skill => (
+                      <li key={skill.id}>{skill.name}</li>
+                    ))}
                   </ul>
                 </div>
               ))}
-              {groupedSkills.length === 0 && <p className="empty-message">Technical skills will be added here soon.</p>}
+              {groupedSkills.length === 0 && (
+                <p className="studio-empty-state">Skills will be added soon.</p>
+              )}
             </div>
           </div>
         </section>
 
-        <section id="about" className="about-section section-space">
-          <div className="page-width">
-            <p className="mono-label" data-reveal>A little about how I work</p>
-            <div className="about-statement" data-reveal>
-              <h2>I enjoy working across the full product cycle: shaping an interface, understanding the data, and making the systems behind it reliable.</h2>
-            </div>
-            <div className="about-grid">
-              <div className="about-bio" data-reveal>
-                <h3>{profile.name}</h3>
-                <p>{profile.bio}</p>
-                <div className="about-socials">
-                  <a href={profile.linkedinUrl} target="_blank" rel="noreferrer"><Linkedin size={17} />LinkedIn</a>
-                  <a href={profile.githubUrl} target="_blank" rel="noreferrer"><Github size={17} />GitHub</a>
-                </div>
+        <section
+          id="about"
+          className="studio-about studio-section"
+          aria-labelledby="studio-about-heading"
+        >
+          <div className="studio-container studio-about-grid">
+            <div className="studio-about-heading-block">
+              <h2 id="studio-about-heading">How I work</h2>
+              <p>{profile.bio}</p>
+              <div className="studio-about-socials">
+                {profile.githubUrl && (
+                  <a
+                    href={profile.githubUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Github size={17} /> GitHub
+                  </a>
+                )}
+                {profile.linkedinUrl && (
+                  <a
+                    href={profile.linkedinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Linkedin size={17} /> LinkedIn
+                  </a>
+                )}
               </div>
-              <div className="principles-list">
-                {[
-                  ["Start with the problem", "Understand what a product needs to do before adding complexity."],
-                  ["Make the details dependable", "Treat validation, maintainability, and clear architecture as part of the user experience."],
-                  ["Keep learning", "Use each build to test ideas, improve the work, and share useful lessons."],
-                ].map(([title, copy], index) => (
-                  <div className="principle" key={title} data-reveal data-delay={index * 70}><span>0{index + 1}</span><div><h3>{title}</h3><p>{copy}</p></div></div>
+            </div>
+            <ol
+              className="studio-approach-list"
+              style={{ listStyle: "none", margin: 0, padding: 0 }}
+            >
+              {approach.map(([title, description], index) => (
+                <li className="studio-approach-row" key={title}>
+                  <span>{index + 1}</span>
+                  <div>
+                    <h3>{title}</h3>
+                    <p>{description}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {data.blogs.length > 0 && (
+          <section
+            id="notes"
+            className="studio-journal studio-section"
+            aria-labelledby="studio-notes-heading"
+          >
+            <div className="studio-container">
+              <div className="studio-section-header">
+                <h2 id="studio-notes-heading">Notes</h2>
+                <p>Things I've learned while building and testing.</p>
+              </div>
+              <div className="studio-journal-list">
+                {data.blogs.map(blog => (
+                  <button
+                    type="button"
+                    className="studio-journal-row"
+                    key={blog.id}
+                    onClick={() => setSelectedBlog(blog)}
+                  >
+                    <span className="studio-journal-date">
+                      {new Date(blog.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                    <div>
+                      <h3>{blog.title}</h3>
+                      <p>{blog.excerpt}</p>
+                    </div>
+                  </button>
                 ))}
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
-        <section id="journal" className="journal-section section-space">
-          <div className="page-width section-heading journal-heading" data-reveal>
-            <p className="mono-label">Journal</p>
-            <h2>Notes from the<br /><span>work in progress.</span></h2>
-          </div>
-          <div className="page-width article-list">
-            {data.blogs.map((blog, index) => (
-              <button className="article-row" key={blog.id} onClick={() => setSelectedBlog(blog)} data-reveal data-delay={index * 60}>
-                <span className="article-index">{String(index + 1).padStart(2, "0")}</span>
-                <div><p>{new Date(blog.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })} · Engineering notes</p><h3>{blog.title}</h3><span>{blog.excerpt}</span></div>
-                <span className="article-arrow"><ArrowUpRight size={22} /></span>
+        <section
+          id="contact"
+          className="studio-contact"
+          aria-labelledby="studio-contact-heading"
+        >
+          <div className="studio-container studio-contact-main">
+            <h2 id="studio-contact-heading">Let's build something together.</h2>
+            <p className="studio-contact-lead">
+              Tell me what you're working on or what's getting in the way. I
+              usually reply within a couple of days.
+            </p>
+            <div className="studio-contact-actions">
+              <a
+                href={`mailto:${profile.email}`}
+                className="studio-contact-email"
+              >
+                {profile.email}
+              </a>
+              <button
+                type="button"
+                className="studio-copy-button"
+                onClick={copyEmail}
+                aria-label="Copy email address"
+              >
+                {copied ? <Check size={16} /> : <Copy size={16} />}
+                {copied ? "Copied" : "Copy"}
               </button>
-            ))}
-            {data.blogs.length === 0 && <p className="empty-message">No journal entries have been published yet.</p>}
-          </div>
-        </section>
-
-        <section id="contact" className="contact-section">
-          <div className="page-width contact-inner" data-reveal>
-            <p className="mono-label">Contact</p>
-            <h2>Let’s talk about<br /><span>what you’re building.</span></h2>
-            <div className="contact-actions">
-              <a className="contact-primary" href={`mailto:${profile.email}`}>Email Anwar <ArrowUpRight size={21} /></a>
-              <button className="copy-button" onClick={copyEmail} aria-label="Copy email address">{copied ? <Check size={20} /> : <Copy size={20} />}{copied ? "Copied" : "Copy email"}</button>
-              <span className="contact-email">{profile.email}</span>
             </div>
           </div>
+          <footer className="studio-container studio-footer">
+            <a
+              href="#top"
+              className="studio-footer-logo"
+              aria-label="Back to top"
+            >
+              anwar<span>.</span>dev
+            </a>
+            <span>
+              © {new Date().getFullYear()} {profile.name}
+            </span>
+            <div className="studio-footer-links">
+              {profile.githubUrl && (
+                <a
+                  href={profile.githubUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  GitHub
+                </a>
+              )}
+              {profile.linkedinUrl && (
+                <a
+                  href={profile.linkedinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  LinkedIn
+                </a>
+              )}
+              <a href="#top">Back to top</a>
+            </div>
+          </footer>
         </section>
       </main>
 
-      <footer className="site-footer page-width">
-        <a href="#top" className="brand-mark" aria-label={`${profile.name}, back to top`}><span>anwar</span><b>.</b></a>
-        <p>Full-stack development · Applied AI<br />© {new Date().getFullYear()} {profile.name}</p>
-        <div className="footer-links"><a href={profile.githubUrl} target="_blank" rel="noreferrer">GitHub</a><a href={profile.linkedinUrl} target="_blank" rel="noreferrer">LinkedIn</a><a href="#top">Back to top ↑</a></div>
-      </footer>
-
-      <Dialog open={!!selectedProject} onOpenChange={open => !open && setSelectedProject(null)}>
-        <DialogContent className="case-dialog">
+      {/* Project preview: image stage, filmstrip, details. Arrow keys move through the current filter. */}
+      <Dialog
+        open={selectedProject !== null}
+        onOpenChange={open => {
+          if (!open) setPreviewIndex(null);
+        }}
+      >
+        <DialogContent
+          className="studio-dialog studio-preview"
+          onKeyDown={event => {
+            if (event.key === "ArrowRight") step(1);
+            if (event.key === "ArrowLeft") step(-1);
+          }}
+        >
           {selectedProject && (
             <>
-              <DialogHeader className="case-dialog-header">
-                <p className="mono-label">{selectedProject.category}</p>
-                <DialogTitle>{selectedCase?.title ?? selectedProject.title}</DialogTitle>
-                <DialogDescription>{selectedProject.summary}</DialogDescription>
-              </DialogHeader>
-              <div className="case-dialog-scroll">
-                <ProjectArtwork project={selectedProject} compact />
-                {selectedCase ? (
-                  <div className="case-chapters">
-                    {[["The challenge", selectedCase.challenge], ["The approach", selectedCase.approach], ["The outcome", selectedCase.outcome]].map(([title, copy], index) => (
-                      <section key={title}><span>0{index + 1}</span><div><h3>{title}</h3><p>{copy}</p></div></section>
+              <div className="studio-preview-visual">
+                <div className="studio-preview-stage">
+                  <ProjectImage
+                    key={selectedProject.id}
+                    project={selectedProject}
+                  />
+                  {visibleProjects.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        className="studio-preview-arrow studio-preview-arrow--prev"
+                        onClick={() => step(-1)}
+                        aria-label="Previous project"
+                      >
+                        <ArrowLeft size={19} />
+                      </button>
+                      <button
+                        type="button"
+                        className="studio-preview-arrow studio-preview-arrow--next"
+                        onClick={() => step(1)}
+                        aria-label="Next project"
+                      >
+                        <ArrowRight size={19} />
+                      </button>
+                    </>
+                  )}
+                </div>
+                {visibleProjects.length > 1 && (
+                  <div className="studio-preview-filmstrip">
+                    {visibleProjects.map((project, index) => (
+                      <button
+                        type="button"
+                        key={project.id}
+                        className="studio-thumb"
+                        aria-current={index === previewIndex}
+                        aria-label={`Show ${project.title}`}
+                        onClick={() => setPreviewIndex(index)}
+                      >
+                        <ProjectImage project={project} thumb />
+                      </button>
                     ))}
                   </div>
-                ) : <p className="case-description">{selectedProject.description}</p>}
-                <div className="case-dialog-footer">
-                  <div className="tech-list">{selectedProject.technologies.split(",").filter(Boolean).map(tech => <span key={tech.trim()}>{tech.trim()}</span>)}</div>
-                  <div>{selectedProject.repoUrl && <a href={selectedProject.repoUrl} target="_blank" rel="noreferrer"><Github size={17} />View source</a>}{selectedProject.liveUrl && <a href={selectedProject.liveUrl} target="_blank" rel="noreferrer">Visit live project<ArrowUpRight size={17} /></a>}</div>
+                )}
+              </div>
+
+              <div className="studio-preview-info">
+                <DialogHeader>
+                  <p className="studio-preview-category">
+                    {selectedProject.category}
+                  </p>
+                  <DialogTitle>
+                    {selectedCase?.title ?? selectedProject.title}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {selectedProject.summary}
+                  </DialogDescription>
+                </DialogHeader>
+
+                {selectedCase ? (
+                  <div className="studio-case-chapters">
+                    {[
+                      ["Challenge", selectedCase.challenge],
+                      ["Approach", selectedCase.approach],
+                      ["Outcome", selectedCase.outcome],
+                    ].map(([title, copy]) => (
+                      <section key={title}>
+                        <h3>{title}</h3>
+                        <p>{copy}</p>
+                      </section>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="studio-case-full-description">
+                    {selectedProject.description}
+                  </p>
+                )}
+
+                <div className="studio-preview-tech">
+                  {techOf(selectedProject).map(tech => (
+                    <span key={tech}>{tech}</span>
+                  ))}
+                </div>
+
+                <div className="studio-preview-footer">
+                  <div className="studio-preview-links">
+                    {selectedProject.liveUrl && (
+                      <a
+                        href={selectedProject.liveUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Live project <ArrowUpRight size={15} />
+                      </a>
+                    )}
+                    {selectedProject.repoUrl && (
+                      <a
+                        href={selectedProject.repoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Github size={15} /> Source code
+                      </a>
+                    )}
+                  </div>
+                  <span className="studio-preview-count">
+                    {(previewIndex ?? 0) + 1} of {visibleProjects.length}
+                  </span>
                 </div>
               </div>
             </>
@@ -316,17 +786,39 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!selectedBlog} onOpenChange={open => !open && setSelectedBlog(null)}>
-        <DialogContent className="article-dialog">
+      <Dialog
+        open={Boolean(selectedBlog)}
+        onOpenChange={open => {
+          if (!open) setSelectedBlog(null);
+        }}
+      >
+        <DialogContent className="studio-dialog studio-article-dialog">
           {selectedBlog && (
             <>
               <DialogHeader>
-                <p className="mono-label">ENGINEERING NOTES · {new Date(selectedBlog.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>
+                <p className="studio-preview-category">
+                  {new Date(selectedBlog.createdAt).toLocaleDateString(
+                    "en-US",
+                    { month: "long", year: "numeric" }
+                  )}
+                </p>
                 <DialogTitle>{selectedBlog.title}</DialogTitle>
                 <DialogDescription>{selectedBlog.excerpt}</DialogDescription>
               </DialogHeader>
-              <div className="article-content">{selectedBlog.content.split("\n\n").map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
-              <a className="article-back" href={`mailto:${profile.email}?subject=${encodeURIComponent(`About: ${selectedBlog.title}`)}`}><Mail size={16} />Discuss this note</a>
+              <div className="studio-article-content">
+                {selectedBlog.content
+                  .split(/\n\s*\n/)
+                  .filter(Boolean)
+                  .map((paragraph, index) => (
+                    <p key={index}>{paragraph}</p>
+                  ))}
+              </div>
+              <a
+                className="studio-inline-link"
+                href={`mailto:${profile.email}?subject=${encodeURIComponent(`About: ${selectedBlog.title}`)}`}
+              >
+                <Mail size={16} /> Reply to this note
+              </a>
             </>
           )}
         </DialogContent>
@@ -336,9 +828,32 @@ export default function Home() {
 }
 
 function PortfolioLoader() {
-  return <div className="portfolio-state"><div className="loader-mark">A<span>UH</span></div><div className="loader-line"><span /></div><p>Assembling the portfolio…</p></div>;
+  return (
+    <div className="studio-site studio-state">
+      <div className="studio-state-brand">
+        anwar<span>.</span>dev
+      </div>
+      <div
+        className="studio-loading-line"
+        role="status"
+        aria-label="Loading portfolio"
+      />
+    </div>
+  );
 }
 
 function PortfolioError({ onRetry }: { onRetry: () => void }) {
-  return <div className="portfolio-state"><p className="mono-label">CONNECTION INTERRUPTED</p><h1>The portfolio couldn’t load.</h1><p>Please check the connection and try again.</p><button onClick={onRetry}><ArrowLeft size={17} />Try again</button></div>;
+  return (
+    <div className="studio-site studio-state">
+      <h1>Couldn't load the portfolio.</h1>
+      <p>The connection was interrupted. Check your network and try again.</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="studio-button studio-button--primary"
+      >
+        Try again
+      </button>
+    </div>
+  );
 }

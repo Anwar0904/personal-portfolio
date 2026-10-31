@@ -1,9 +1,9 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { blogs, caseStudies, profiles, projects, skills } from "@db/schema";
-import { adminQuery, createRouter, publicQuery } from "./middleware";
-import { getAdminPortfolio, getPublicPortfolio } from "./queries/portfolio";
-import { getDb } from "./queries/connection";
+import { blogs, caseStudies, profiles, projects, skills } from "../db/schema.js";
+import { adminQuery, createRouter, publicQuery } from "./middleware.js";
+import { getAdminPortfolio, getPublicPortfolio } from "./queries/portfolio.js";
+import { getDb } from "./queries/connection.js";
 
 const slugify = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `entry-${Date.now()}`;
 const idInput = z.object({ id: z.number().int().positive() });

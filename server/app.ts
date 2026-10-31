@@ -2,13 +2,13 @@ import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import type { HttpBindings } from "@hono/node-server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
-import { appRouter } from "./router";
-import { createContext } from "./context";
-import { createGoogleAuthHandlers } from "./google-auth";
-import { Paths } from "@contracts/constants";
-import { log } from "./lib/logger";
-import { handleClientLog } from "./lib/clientlog";
-import { REQUEST_ID_HEADER, runWithRequestId } from "./lib/requestcontext";
+import { appRouter } from "./router.js";
+import { createContext } from "./context.js";
+import { createGoogleAuthHandlers } from "./google-auth.js";
+import { Paths } from "../contracts/constants.js";
+import { log } from "./lib/logger.js";
+import { handleClientLog } from "./lib/clientlog.js";
+import { REQUEST_ID_HEADER, runWithRequestId } from "./lib/requestcontext.js";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 

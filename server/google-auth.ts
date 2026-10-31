@@ -3,12 +3,12 @@ import { randomBytes } from "node:crypto";
 import type { Context } from "hono";
 import * as jose from "jose";
 import { setCookie, deleteCookie } from "hono/cookie";
-import { Errors } from "@contracts/errors";
-import { Paths, Session } from "@contracts/constants";
-import { env } from "./lib/env";
-import { getSessionCookieOptions } from "./lib/cookies";
-import { findUserByUnionId, upsertUser } from "./queries/users";
-import { signSessionToken, verifySessionToken } from "./session";
+import { Errors } from "../contracts/errors.js";
+import { Paths, Session } from "../contracts/constants.js";
+import { env } from "./lib/env.js";
+import { getSessionCookieOptions } from "./lib/cookies.js";
+import { findUserByUnionId, upsertUser } from "./queries/users.js";
+import { signSessionToken, verifySessionToken } from "./session.js";
 
 const STATE_COOKIE = "google_oauth_state";
 const googleJwks = jose.createRemoteJWKSet(

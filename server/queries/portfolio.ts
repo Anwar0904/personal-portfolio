@@ -1,6 +1,6 @@
 import { and, asc, desc, eq } from "drizzle-orm";
-import { blogs, caseStudies, profiles, projects, skills } from "@db/schema";
-import { getDb } from "./connection";
+import { blogs, caseStudies, profiles, projects, skills } from "../../db/schema.js";
+import { getDb } from "./connection.js";
 
 export async function getPublicPortfolio() {
   const db = getDb();

@@ -1,7 +1,7 @@
 import { serve } from "@hono/node-server";
-import app from "./app";
-import { serveStaticFiles } from "./lib/vite";
-import { log } from "./lib/logger";
+import app from "./app.js";
+import { serveStaticFiles } from "./lib/vite.js";
+import { log } from "./lib/logger.js";
 
 serveStaticFiles(app);
 

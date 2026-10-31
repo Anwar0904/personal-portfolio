@@ -1,5 +1,5 @@
-import { getDb } from "../server/queries/connection";
-import { blogs, caseStudies, profiles, projects, skills } from "./schema";
+import { getDb } from "../server/queries/connection.js";
+import { blogs, caseStudies, profiles, projects, skills } from "./schema.js";
 
 const projectSeed = [
   {

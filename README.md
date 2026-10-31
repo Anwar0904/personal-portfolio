@@ -61,6 +61,29 @@ deployed callback URL (`https://your-domain/api/oauth/google/callback`), set
 `GOOGLE_REDIRECT_URI` to exactly that URL, and provide the required environment
 variables to the process.
 
+## Deploy to Vercel
+
+The repository includes `vercel.json` for the Vite build output and client-side
+route fallback. The Hono API is deployed as a Vercel function; local API source
+is kept in `server/` so it is not exposed as individual function routes.
+
+Import the repository into Vercel and deploy with the defaults from
+`vercel.json`. Add these environment variables to the Vercel project for
+Production (and Preview if those deployments need the API):
+
+- `SESSION_SECRET` — a random secret of at least 32 bytes
+- `DATABASE_URL` — a PostgreSQL connection URL
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_REDIRECT_URI` — `https://your-domain/api/oauth/google/callback`
+- `OWNER_EMAIL` — the verified Google account that owns the portfolio
+
+Add the deployed callback URL to the Google OAuth client's authorized redirect
+URIs, then run `npm run db:push` and `npm run db:seed` against the production
+database from a trusted environment. Vercel functions are stateless, so session
+and application data must be stored in PostgreSQL; do not rely on local files
+for persistent state.
+
 ## Other npm commands
 
 | Command | Purpose |

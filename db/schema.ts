@@ -15,7 +15,7 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 320 }),
   avatar: text("avatar"),
   role: varchar("role", { length: 16 })
-    .$type<"user" | "admin">()
+    .$type<"user" | "admin" | "super_admin">()
     .default("user")
     .notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

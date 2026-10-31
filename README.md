@@ -24,8 +24,10 @@ Then set `SESSION_SECRET`, `DATABASE_URL`, `GOOGLE_CLIENT_ID`, and
 callback URL. `DATABASE_URL` must be a PostgreSQL connection URL. If your
 database provider requires TLS, include its required SSL parameters. URL-encode
 special characters in the database username and password. Set `OWNER_EMAIL` to
-the Google account that should receive the admin role; it must be a verified
-Google email.
+the exact, verified Google account that should own the portfolio. That account
+is promoted to `super_admin` at sign-in. Existing admin dashboard permissions
+are also granted to `super_admin` accounts. After changing `OWNER_EMAIL`,
+restart the app, then sign out and sign in again to apply the role.
 
 Create the database schema and initial portfolio content:
 

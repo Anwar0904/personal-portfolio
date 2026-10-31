@@ -47,7 +47,9 @@ function requireRole(role: string) {
   return t.middleware(async (opts) => {
     const { ctx, next } = opts;
 
-    if (!ctx.user || ctx.user.role !== role) {
+    const hasRole = ctx.user?.role === role ||
+      (role === "admin" && ctx.user?.role === "super_admin");
+    if (!hasRole) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: ErrorMessages.insufficientRole,

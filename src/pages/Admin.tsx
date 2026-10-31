@@ -53,7 +53,7 @@ export default function Admin() {
     return tabs.some(tab => tab.id === hash) ? hash : "overview";
   });
   const utils = trpc.useUtils();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
   const { data, isLoading: contentLoading, isError, refetch } = trpc.portfolio.admin.useQuery(undefined, { enabled: isAdmin });
 
   const onSuccess = (message: string) => async () => {

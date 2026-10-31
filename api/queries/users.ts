@@ -26,8 +26,8 @@ export async function upsertUser(data: InsertUser) {
     email &&
     email === env.ownerEmail
   ) {
-    values.role = "admin";
-    updateSet.role = "admin";
+    values.role = "super_admin";
+    updateSet.role = "super_admin";
   }
 
   await getDb()

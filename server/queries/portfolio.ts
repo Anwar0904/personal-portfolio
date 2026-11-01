@@ -4,8 +4,8 @@ import { getDb } from "./connection.js";
 
 export async function getPublicPortfolio() {
   const db = getDb();
-  const [profile] = await db.select().from(profiles).limit(1);
-  const [projectRows, skillRows, caseRows, blogRows] = await Promise.all([
+  const [[profile], projectRows, skillRows, caseRows, blogRows] = await Promise.all([
+    db.select().from(profiles).limit(1),
     db.select().from(projects).where(eq(projects.published, true)).orderBy(asc(projects.sortOrder), desc(projects.createdAt)),
     db.select().from(skills).where(eq(skills.published, true)).orderBy(asc(skills.sortOrder), asc(skills.name)),
     db.select().from(caseStudies).where(eq(caseStudies.published, true)).orderBy(desc(caseStudies.createdAt)),

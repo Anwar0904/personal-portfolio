@@ -5,11 +5,15 @@ import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import { inspectAttr } from 'kimi-plugin-inspect-react'
 
+const enableReactInspector = process.env.VITE_ENABLE_REACT_INSPECTOR === "true";
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     devServer({ entry: "server/app.ts", exclude: [/^\/(?!api\/).*$/] }),
-    inspectAttr(), react()],
+    ...(enableReactInspector ? [inspectAttr()] : []),
+    react(),
+  ],
   server: {
     port: 3000,
   },

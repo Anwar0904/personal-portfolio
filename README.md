@@ -47,6 +47,10 @@ Vite and API requests are handled by the Hono development server. Google sign-in
 and database-backed features require the corresponding credentials and a
 reachable PostgreSQL database.
 
+The React source inspector is disabled by default to avoid reparsing JSX/TSX
+components during development. Enable it when needed with
+`VITE_ENABLE_REACT_INSPECTOR=true npm run dev`.
+
 ## Production
 
 ```sh

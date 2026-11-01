@@ -43,6 +43,14 @@ const fallbackStack = ["React", "Node.js", "TypeScript", "Python"];
 
 type Blog = PublicPortfolio["blogs"][number];
 
+const emptyPortfolio = {
+  profile: fallbackProfile,
+  projects: [] satisfies PublicPortfolio["projects"],
+  skills: [] satisfies PublicPortfolio["skills"],
+  caseStudies: [] satisfies PublicPortfolio["caseStudies"],
+  blogs: [] satisfies PublicPortfolio["blogs"],
+};
+
 const skillCategories: Record<string, string> = {
   Frontend: "Frontend",
   Backend: "Backend and APIs",
@@ -117,7 +125,10 @@ function ProjectImage({
 
 export default function Home() {
   const { data, isLoading, isError, refetch } =
-    trpc.portfolio.public.useQuery();
+    trpc.portfolio.public.useQuery(undefined, {
+      retry: false,
+      staleTime: 60_000,
+    });
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [filter, setFilter] = useState("All");
@@ -141,11 +152,12 @@ export default function Home() {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [menuOpen]);
 
-  const profile = data?.profile ?? fallbackProfile;
+  const portfolio = data ?? emptyPortfolio;
+  const profile = portfolio.profile ?? fallbackProfile;
 
   const groupedSkills = useMemo(() => {
     const groups = new Map<string, PublicPortfolio["skills"]>();
-    data?.skills.forEach(skill => {
+    portfolio.skills.forEach(skill => {
       const category = skillCategories[skill.category] ?? skill.category;
       groups.set(category, [...(groups.get(category) ?? []), skill]);
     });
@@ -157,15 +169,15 @@ export default function Home() {
         (secondIndex < 0 ? categoryOrder.length : secondIndex)
       );
     });
-  }, [data?.skills]);
+  }, [portfolio.skills]);
 
   // Featured work leads the gallery; order is otherwise unchanged.
   const projects = useMemo(
     () =>
-      [...(data?.projects ?? [])].sort(
+      [...portfolio.projects].sort(
         (a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured))
       ),
-    [data?.projects]
+    [portfolio.projects]
   );
 
   const categories = useMemo(() => {
@@ -185,7 +197,7 @@ export default function Home() {
   const selectedProject =
     previewIndex !== null ? (visibleProjects[previewIndex] ?? null) : null;
   const selectedCase = selectedProject
-    ? data?.caseStudies.find(item => item.projectId === selectedProject.id)
+    ? portfolio.caseStudies.find(item => item.projectId === selectedProject.id)
     : undefined;
 
   const step = (direction: 1 | -1) => {
@@ -197,9 +209,9 @@ export default function Home() {
   };
 
   const heroStack = useMemo(() => {
-    const names = (data?.skills ?? []).slice(0, 4).map(skill => skill.name);
+    const names = portfolio.skills.slice(0, 4).map(skill => skill.name);
     return names.length ? names : fallbackStack;
-  }, [data?.skills]);
+  }, [portfolio.skills]);
 
   const copyEmail = async () => {
     try {
@@ -226,15 +238,11 @@ export default function Home() {
     event.currentTarget.style.removeProperty("--rx");
   };
 
-  if (isLoading) return <PortfolioLoader />;
-  if (isError || !data)
-    return <PortfolioError onRetry={() => void refetch()} />;
-
   const navItems = [
     { label: "Work", href: "#work" },
     { label: "Skills", href: "#skills" },
     { label: "About", href: "#about" },
-    ...(data.blogs.length ? [{ label: "Notes", href: "#notes" }] : []),
+    ...(portfolio.blogs.length ? [{ label: "Notes", href: "#notes" }] : []),
   ];
 
   return (
@@ -298,6 +306,19 @@ export default function Home() {
       </header>
 
       <main id="main-content">
+        {isLoading && (
+          <p className="studio-loading-notice" role="status">
+            Loading portfolio content...
+          </p>
+        )}
+        {isError && (
+          <div className="studio-loading-notice" role="alert">
+            <span>Portfolio content could not be loaded.</span>
+            <button type="button" onClick={() => void refetch()}>
+              Try again
+            </button>
+          </div>
+        )}
         <section className="studio-hero" aria-labelledby="studio-hero-title">
           <div className="studio-container studio-hero-grid">
             <div className="studio-hero-copy">
@@ -555,7 +576,7 @@ export default function Home() {
           </div>
         </section>
 
-        {data.blogs.length > 0 && (
+        {portfolio.blogs.length > 0 && (
           <section
             id="notes"
             className="studio-journal studio-section"
@@ -567,7 +588,7 @@ export default function Home() {
                 <p>Things I've learned while building and testing.</p>
               </div>
               <div className="studio-journal-list">
-                {data.blogs.map(blog => (
+                {portfolio.blogs.map(blog => (
                   <button
                     type="button"
                     className="studio-journal-row"
@@ -823,37 +844,6 @@ export default function Home() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-function PortfolioLoader() {
-  return (
-    <div className="studio-site studio-state">
-      <div className="studio-state-brand">
-        anwar<span>.</span>dev
-      </div>
-      <div
-        className="studio-loading-line"
-        role="status"
-        aria-label="Loading portfolio"
-      />
-    </div>
-  );
-}
-
-function PortfolioError({ onRetry }: { onRetry: () => void }) {
-  return (
-    <div className="studio-site studio-state">
-      <h1>Couldn't load the portfolio.</h1>
-      <p>The connection was interrupted. Check your network and try again.</p>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="studio-button studio-button--primary"
-      >
-        Try again
-      </button>
     </div>
   );
 }

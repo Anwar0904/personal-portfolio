@@ -1171,6 +1171,25 @@
 }
 
 /* ---------- Loading / error ---------- */
+.studio-loading-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 0;
+  padding: 8px 16px;
+  color: var(--studio-muted);
+  font-size: 13px;
+  text-align: center;
+}
+.studio-loading-notice button {
+  border: 0;
+  background: none;
+  color: var(--studio-blue);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
 .studio-state {
   min-height: 100dvh;
   display: flex;

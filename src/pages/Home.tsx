@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type PointerEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -39,7 +39,10 @@ const fallbackProfile = {
   availability: "Building intelligent software, end to end.",
 };
 
-const fallbackStack = ["React", "Node.js", "TypeScript", "Python"];
+// Transparent-background portrait used in the hero (public/images/anwar-hero.png).
+const heroPortrait = "/images/anwar-hero.png";
+// Drop your CV into public/ with this name to enable the "Download CV" button.
+const cvUrl = "/Anwar-Ul-Haq-CV.pdf";
 
 type Blog = PublicPortfolio["blogs"][number];
 
@@ -124,20 +127,32 @@ function ProjectImage({
 }
 
 export default function Home() {
-  const { data, isLoading, isError, refetch } =
-    trpc.portfolio.public.useQuery(undefined, {
+  const { data, isLoading, isError, refetch } = trpc.portfolio.public.useQuery(
+    undefined,
+    {
       retry: false,
       staleTime: 60_000,
-    });
+    }
+  );
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [filter, setFilter] = useState("All");
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null);
   const [copied, setCopied] = useState(false);
+  const [activeId, setActiveId] = useState("top");
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 16);
+    const ids = ["work", "skills", "about", "notes", "contact"];
+    const onScroll = () => {
+      setScrolled(window.scrollY > 16);
+      let current = "top";
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= 140) current = id;
+      });
+      setActiveId(current);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -208,10 +223,11 @@ export default function Home() {
     );
   };
 
-  const heroStack = useMemo(() => {
-    const names = portfolio.skills.slice(0, 4).map(skill => skill.name);
-    return names.length ? names : fallbackStack;
-  }, [portfolio.skills]);
+  const heroStats = [
+    [portfolio.projects.length, "Projects done"],
+    [portfolio.skills.length, "Technologies"],
+    [portfolio.caseStudies.length, "Case studies"],
+  ].filter(([count]) => Number(count) > 0) as [number, string][];
 
   const copyEmail = async () => {
     try {
@@ -224,26 +240,15 @@ export default function Home() {
     }
   };
 
-  // Pointer tilt for the 3D hero. Mouse only; touch devices keep the resting pose.
-  const tilt = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType !== "mouse") return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = (event.clientX - rect.left) / rect.width - 0.5;
-    const y = (event.clientY - rect.top) / rect.height - 0.5;
-    event.currentTarget.style.setProperty("--ry", `${(x * 18).toFixed(2)}deg`);
-    event.currentTarget.style.setProperty("--rx", `${(-y * 14).toFixed(2)}deg`);
-  };
-  const resetTilt = (event: PointerEvent<HTMLDivElement>) => {
-    event.currentTarget.style.removeProperty("--ry");
-    event.currentTarget.style.removeProperty("--rx");
-  };
-
   const navItems = [
+    { label: "Home", href: "#top" },
     { label: "Work", href: "#work" },
     { label: "Skills", href: "#skills" },
     { label: "About", href: "#about" },
     ...(portfolio.blogs.length ? [{ label: "Notes", href: "#notes" }] : []),
+    { label: "Contact", href: "#contact" },
   ];
+  const isActive = (href: string) => href.slice(1) === activeId;
 
   return (
     <div className="studio-site" id="top">
@@ -265,14 +270,18 @@ export default function Home() {
           </a>
           <nav className="studio-desktop-nav" aria-label="Main navigation">
             {navItems.map(item => (
-              <a key={item.href} href={item.href}>
+              <a
+                key={item.href}
+                href={item.href}
+                aria-current={isActive(item.href) ? "true" : undefined}
+              >
                 {item.label}
               </a>
             ))}
           </nav>
           <div className="studio-header-actions">
-            <a className="studio-header-contact" href="#contact">
-              Contact
+            <a className="studio-header-hire" href={`mailto:${profile.email}`}>
+              Hire Me
             </a>
             <button
               className="studio-menu-button"
@@ -292,10 +301,11 @@ export default function Home() {
             id="studio-mobile-nav"
             aria-label="Mobile navigation"
           >
-            {[...navItems, { label: "Contact", href: "#contact" }].map(item => (
+            {navItems.map(item => (
               <a
                 key={item.href}
                 href={item.href}
+                aria-current={isActive(item.href) ? "true" : undefined}
                 onClick={() => setMenuOpen(false)}
               >
                 {item.label}
@@ -322,85 +332,79 @@ export default function Home() {
         <section className="studio-hero" aria-labelledby="studio-hero-title">
           <div className="studio-container studio-hero-grid">
             <div className="studio-hero-copy">
-              <p className="studio-hero-name">Hi, I'm {profile.name}.</p>
-              <h1 id="studio-hero-title">
-                I build full-stack web apps and the AI inside them.
-              </h1>
-              <p className="studio-hero-description">{profile.bio}</p>
+              <p className="studio-hero-hello">Hi I am</p>
+              <p className="studio-hero-name">{profile.name}</p>
+              <h1 id="studio-hero-title">{profile.headline}</h1>
+
+              <ul className="studio-hero-socials" aria-label="Social links">
+                {profile.githubUrl && (
+                  <li>
+                    <a
+                      href={profile.githubUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="GitHub"
+                    >
+                      <Github size={16} />
+                    </a>
+                  </li>
+                )}
+                {profile.linkedinUrl && (
+                  <li>
+                    <a
+                      href={profile.linkedinUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="LinkedIn"
+                    >
+                      <Linkedin size={16} />
+                    </a>
+                  </li>
+                )}
+                <li>
+                  <a href={`mailto:${profile.email}`} aria-label="Email">
+                    <Mail size={16} />
+                  </a>
+                </li>
+              </ul>
+
               <div className="studio-hero-ctas">
                 <a
                   className="studio-button studio-button--primary"
-                  href="#work"
+                  href={`mailto:${profile.email}`}
                 >
-                  View projects
+                  Hire Me
                 </a>
                 <a
-                  className="studio-button studio-button--text"
-                  href="#contact"
+                  className="studio-button studio-button--outline"
+                  href={cvUrl}
+                  download
                 >
-                  Get in touch
+                  Download CV
                 </a>
               </div>
-            </div>
 
-            <div
-              className="studio-scene"
-              onPointerMove={tilt}
-              onPointerLeave={resetTilt}
-            >
-              <div className="studio-stage">
-                <div
-                  className="studio-layer studio-layer--plate"
-                  aria-hidden="true"
-                >
-                  <div />
-                </div>
-                <div className="studio-layer studio-layer--photo">
-                  <img
-                    src={profile.avatarUrl || fallbackProfile.avatarUrl}
-                    alt={`Portrait of ${profile.name}`}
-                    fetchPriority="high"
-                    decoding="async"
-                  />
-                </div>
-                <div
-                  className="studio-layer studio-layer--code"
-                  aria-hidden="true"
-                >
-                  <div className="studio-code-bar">
-                    <i />
-                    <i />
-                    <i />
-                  </div>
-                  <div className="studio-code-body">
-                    <p>
-                      <span className="k">const</span> dev = {"{"}
-                    </p>
-                    <p className="indent">
-                      role: <span className="s">"{profile.headline}"</span>,
-                    </p>
-                    <p className="indent">
-                      based: <span className="s">"{profile.location}"</span>,
-                    </p>
-                    <p>{"}"}</p>
-                  </div>
-                </div>
-                <ul
-                  className="studio-layer studio-layer--stack"
-                  aria-label="Core stack"
-                  style={{ listStyle: "none", margin: 0 }}
-                >
-                  {heroStack.map(name => (
-                    <li key={name} style={{ display: "contents" }}>
-                      <span>{name}</span>
+              {heroStats.length > 0 && (
+                <ul className="studio-hero-stats" aria-label="Highlights">
+                  {heroStats.map(([count, label]) => (
+                    <li key={label}>
+                      <strong>{count}+</strong>
+                      <span>{label}</span>
                     </li>
                   ))}
                 </ul>
-                <div className="studio-layer studio-layer--label">
-                  <strong>{profile.name}</strong>
-                  <span>{profile.headline}</span>
-                </div>
-              </div>
+              )}
+            </div>
+
+            <div className="studio-hero-visual">
+              <div className="studio-hero-disc" aria-hidden="true" />
+              <img
+                className="studio-hero-photo"
+                src={heroPortrait}
+                alt={`Portrait of ${profile.name}`}
+                fetchPriority="high"
+                decoding="async"
+              />
             </div>
           </div>
         </section>

@@ -261,14 +261,17 @@ export default function Home() {
       >
         <div className="studio-container studio-header-inner">
           <a
-            className="studio-logo"
+            className={`studio-logo ${scrolled ? "studio-logo--scrolled" : ""}`}
             href="#top"
             aria-label={`${profile.name}, back to top`}
           >
             anwar<span className="studio-logo-dot">.</span>
             <span className="studio-logo-suffix">dev</span>
           </a>
-          <nav className="studio-desktop-nav" aria-label="Main navigation">
+          <nav
+            className={`studio-desktop-nav ${scrolled ? "studio-desktop-nav--scrolled" : ""}`}
+            aria-label="Main navigation"
+          >
             {navItems.map(item => (
               <a
                 key={item.href}
@@ -280,7 +283,10 @@ export default function Home() {
             ))}
           </nav>
           <div className="studio-header-actions">
-            <a className="studio-header-hire" href={`mailto:${profile.email}`}>
+            <a
+              className={`studio-header-hire ${scrolled ? "studio-header-hire--scrolled" : ""}`}
+              href={`mailto:${profile.email}`}
+            >
               Hire Me
             </a>
             <button

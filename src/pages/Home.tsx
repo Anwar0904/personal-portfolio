@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type PointerEvent,
+} from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -97,6 +104,12 @@ const techOf = (project: PortfolioProject, max?: number) => {
   return max ? list.slice(0, max) : list;
 };
 
+const featuredProjectSlugs = [
+  "blood-connect",
+  "atk-app",
+  "arazi-digital-media",
+];
+
 function ProjectImage({
   project,
   thumb = false,
@@ -125,6 +138,185 @@ function ProjectImage({
     >
       <strong>{project.title}</strong>
       {!thumb && <small>{techOf(project, 3).join(", ")}</small>}
+    </div>
+  );
+}
+
+function FeaturedProjectsDeck({
+  projects,
+  onProjectSelect,
+  allProjectsUrl,
+}: {
+  projects: PortfolioProject[];
+  onProjectSelect: (project: PortfolioProject) => void;
+  allProjectsUrl: string;
+}) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const dragStart = useRef<{ x: number; pointerId: number } | null>(null);
+  const dragged = useRef(false);
+  const currentIndex = projects.length ? activeIndex % projects.length : 0;
+
+  const move = (direction: 1 | -1) => {
+    setActiveIndex(
+      index => (index + direction + projects.length) % projects.length
+    );
+  };
+
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || projects.length < 2) return;
+    dragStart.current = { x: event.clientX, pointerId: event.pointerId };
+    dragged.current = false;
+    if (event.target instanceof Element) {
+      event.target.setPointerCapture(event.pointerId);
+    }
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (!dragStart.current || dragStart.current.pointerId !== event.pointerId)
+      return;
+    const distance = event.clientX - dragStart.current.x;
+    event.currentTarget.style.setProperty(
+      "--deck-drag-x",
+      `${Math.max(-96, Math.min(96, distance))}px`
+    );
+  };
+
+  const handlePointerEnd = (event: PointerEvent<HTMLDivElement>) => {
+    if (!dragStart.current || dragStart.current.pointerId !== event.pointerId)
+      return;
+    const distance = event.clientX - dragStart.current.x;
+    dragStart.current = null;
+    event.currentTarget.style.removeProperty("--deck-drag-x");
+    if (Math.abs(distance) >= 48) {
+      dragged.current = true;
+      move(distance < 0 ? 1 : -1);
+      window.setTimeout(() => {
+        dragged.current = false;
+      }, 0);
+    }
+  };
+
+  const handlePointerCancel = (event: PointerEvent<HTMLDivElement>) => {
+    if (!dragStart.current || dragStart.current.pointerId !== event.pointerId)
+      return;
+    dragStart.current = null;
+    dragged.current = false;
+    event.currentTarget.style.removeProperty("--deck-drag-x");
+  };
+
+  if (projects.length === 0) {
+    return (
+      <p className="studio-empty-state">
+        Featured projects will appear here once they’re published.
+      </p>
+    );
+  }
+
+  return (
+    <div className="studio-deck-layout">
+      <button
+        type="button"
+        className="studio-deck-control"
+        onClick={() => move(-1)}
+        disabled={projects.length < 2}
+        aria-label="Previous featured project"
+      >
+        <ArrowLeft size={20} />
+      </button>
+
+      <div
+        className="studio-deck-stage"
+        role="region"
+        aria-roledescription="carousel"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={handlePointerCancel}
+        aria-label="Featured project cards. Drag horizontally to browse."
+      >
+        {projects.map((project, index) => {
+          const position =
+            (index - currentIndex + projects.length) % projects.length;
+          return (
+            <button
+              type="button"
+              key={project.id}
+              className="studio-deck-card"
+              data-position={position}
+              onClick={() => {
+                if (dragged.current) {
+                  dragged.current = false;
+                  return;
+                }
+                onProjectSelect(project);
+              }}
+              aria-label={`Preview ${project.title}`}
+              tabIndex={position === 0 ? 0 : -1}
+            >
+              <span className="studio-deck-media">
+                <ProjectImage project={project} />
+                <span className="studio-deck-open">
+                  View project <ArrowUpRight size={16} />
+                </span>
+              </span>
+              <span className="studio-deck-caption">
+                <span>
+                  <span className="studio-deck-category">
+                    {project.category}
+                  </span>
+                  <span className="studio-deck-title">{project.title}</span>
+                  <span className="studio-deck-summary">{project.summary}</span>
+                </span>
+                <ArrowUpRight
+                  className="studio-deck-caption-arrow"
+                  size={20}
+                  aria-hidden="true"
+                />
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <button
+        type="button"
+        className="studio-deck-control"
+        onClick={() => move(1)}
+        disabled={projects.length < 2}
+        aria-label="Next featured project"
+      >
+        <ArrowRight size={20} />
+      </button>
+
+      <div className="studio-deck-footer">
+        <span>
+          {String(currentIndex + 1).padStart(2, "0")} /{" "}
+          {String(projects.length).padStart(2, "0")}
+        </span>
+        <div
+          className="studio-deck-dots"
+          role="group"
+          aria-label="Featured project position"
+        >
+          {projects.map((project, index) => (
+            <button
+              key={project.id}
+              type="button"
+              aria-label={`Show ${project.title}`}
+              aria-current={index === currentIndex}
+              onClick={() => setActiveIndex(index)}
+            />
+          ))}
+        </div>
+        <a
+          href={allProjectsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="studio-deck-all-link"
+        >
+          Explore all projects <ArrowUpRight size={16} />
+        </a>
+      </div>
     </div>
   );
 }
@@ -179,7 +371,6 @@ export default function Home() {
   );
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [filter, setFilter] = useState("All");
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null);
   const [subscribeEmail, setSubscribeEmail] = useState("");
@@ -232,7 +423,7 @@ export default function Home() {
     });
   }, [portfolio.skills]);
 
-  // Featured work leads the gallery; order is otherwise unchanged.
+  // Featured work leads the project preview order; the remaining order is unchanged.
   const projects = useMemo(
     () =>
       [...portfolio.projects].sort(
@@ -241,32 +432,31 @@ export default function Home() {
     [portfolio.projects]
   );
 
-  const categories = useMemo(() => {
-    const counts = new Map<string, number>();
-    projects.forEach(p =>
-      counts.set(p.category, (counts.get(p.category) ?? 0) + 1)
-    );
-    return Array.from(counts.entries());
-  }, [projects]);
-
-  const visibleProjects = useMemo(
+  const featuredProjects = useMemo(
     () =>
-      filter === "All" ? projects : projects.filter(p => p.category === filter),
-    [projects, filter]
+      featuredProjectSlugs.flatMap(slug => {
+        const project = projects.find(item => item.slug === slug);
+        return project ? [project] : [];
+      }),
+    [projects]
   );
 
   const selectedProject =
-    previewIndex !== null ? (visibleProjects[previewIndex] ?? null) : null;
+    previewIndex !== null ? (projects[previewIndex] ?? null) : null;
   const selectedCase = selectedProject
     ? portfolio.caseStudies.find(item => item.projectId === selectedProject.id)
     : undefined;
 
   const step = (direction: 1 | -1) => {
-    if (previewIndex === null || visibleProjects.length === 0) return;
+    if (previewIndex === null || projects.length === 0) return;
     setPreviewIndex(
-      (previewIndex + direction + visibleProjects.length) %
-        visibleProjects.length
+      (previewIndex + direction + projects.length) % projects.length
     );
+  };
+
+  const openProjectPreview = (project: PortfolioProject) => {
+    const index = projects.findIndex(item => item.id === project.id);
+    if (index >= 0) setPreviewIndex(index);
   };
 
   const heroStats = [
@@ -539,79 +729,20 @@ export default function Home() {
         >
           <div className="studio-container">
             <div className="studio-section-header">
-              <h2 id="studio-work-heading">Projects</h2>
+              <h2 id="studio-work-heading">Featured Projects</h2>
               <p>
-                Product builds and experiments. Open any project for the
-                screenshots, stack, and write-up.
+                A few selected projects that bring thoughtful design and
+                practical engineering together.
               </p>
             </div>
 
-            {categories.length > 1 && (
-              <div
-                className="studio-filters"
-                role="group"
-                aria-label="Filter projects by category"
-              >
-                <button
-                  type="button"
-                  className="studio-filter"
-                  aria-pressed={filter === "All"}
-                  onClick={() => setFilter("All")}
-                >
-                  All<small>{projects.length}</small>
-                </button>
-                {categories.map(([category, count]) => (
-                  <button
-                    key={category}
-                    type="button"
-                    className="studio-filter"
-                    aria-pressed={filter === category}
-                    onClick={() => setFilter(category)}
-                  >
-                    {category}
-                    <small>{count}</small>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <ul className="studio-gallery" key={filter}>
-              {visibleProjects.map((project, index) => (
-                <li
-                  className="studio-tile-wrap"
-                  key={project.id}
-                  style={{ ["--i" as string]: index }}
-                >
-                  <button
-                    type="button"
-                    className="studio-tile"
-                    onClick={() => setPreviewIndex(index)}
-                    aria-label={`Open ${project.title}`}
-                  >
-                    <span className="studio-tile-media">
-                      <ProjectImage project={project} />
-                      <span className="studio-tile-open" aria-hidden="true">
-                        Preview
-                      </span>
-                    </span>
-                    <span className="studio-tile-caption">
-                      <span className="studio-tile-title">{project.title}</span>
-                      <span className="studio-tile-cat">
-                        {project.category}
-                      </span>
-                    </span>
-                    <span className="studio-tile-summary">
-                      {project.summary}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {visibleProjects.length === 0 && (
-              <p className="studio-empty-state">
-                Projects will appear here once they're published.
-              </p>
-            )}
+            <FeaturedProjectsDeck
+              projects={featuredProjects}
+              onProjectSelect={openProjectPreview}
+              allProjectsUrl={
+                profile.githubUrl || "https://github.com/Anwar0904"
+              }
+            />
           </div>
         </section>
 
@@ -1026,7 +1157,7 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* Project preview: image stage, filmstrip, details. Arrow keys move through the current filter. */}
+      {/* Project preview: image stage, filmstrip, and details. */}
       <Dialog
         open={selectedProject !== null}
         onOpenChange={open => {
@@ -1048,7 +1179,7 @@ export default function Home() {
                     key={selectedProject.id}
                     project={selectedProject}
                   />
-                  {visibleProjects.length > 1 && (
+                  {projects.length > 1 && (
                     <>
                       <button
                         type="button"
@@ -1069,9 +1200,9 @@ export default function Home() {
                     </>
                   )}
                 </div>
-                {visibleProjects.length > 1 && (
+                {projects.length > 1 && (
                   <div className="studio-preview-filmstrip">
-                    {visibleProjects.map((project, index) => (
+                    {projects.map((project, index) => (
                       <button
                         type="button"
                         key={project.id}
@@ -1147,7 +1278,7 @@ export default function Home() {
                     )}
                   </div>
                   <span className="studio-preview-count">
-                    {(previewIndex ?? 0) + 1} of {visibleProjects.length}
+                    {(previewIndex ?? 0) + 1} of {projects.length}
                   </span>
                 </div>
               </div>

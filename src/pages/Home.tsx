@@ -402,13 +402,38 @@ export default function Home() {
               )}
             </div>
 
-            <div className="studio-hero-visual">
+            <div
+              className="studio-hero-visual"
+              onPointerMove={event => {
+                if (event.pointerType === "touch") return;
+                const bounds = event.currentTarget.getBoundingClientRect();
+                event.currentTarget.style.setProperty(
+                  "--cursor-x",
+                  `${event.clientX - bounds.left}px`,
+                );
+                event.currentTarget.style.setProperty(
+                  "--cursor-y",
+                  `${event.clientY - bounds.top}px`,
+                );
+              }}
+              onPointerLeave={event => {
+                event.currentTarget.style.removeProperty("--cursor-x");
+                event.currentTarget.style.removeProperty("--cursor-y");
+              }}
+            >
               <div className="studio-hero-disc" aria-hidden="true" />
               <img
                 className="studio-hero-photo"
                 src={heroPortrait}
                 alt={`Portrait of ${profile.name}`}
                 fetchPriority="high"
+                decoding="async"
+              />
+              <img
+                className="studio-hero-photo studio-hero-photo--color"
+                src={heroPortrait}
+                alt=""
+                aria-hidden="true"
                 decoding="async"
               />
             </div>

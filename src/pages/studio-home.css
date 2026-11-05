@@ -103,17 +103,18 @@
     background 0.2s ease;
 }
 .studio-header--scrolled {
-  background: rgba(14, 14, 14, 0.92);
+  background: rgba(14, 14, 14, 0.783);
   backdrop-filter: blur(10px);
   border-bottom-color: var(--hero-line);
-  height: 70px;
+  min-height: 70px;
 }
 .studio-header-inner {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  min-height: 96px;
+  min-height: 70px;
   font-family: var(--hero-font);
+  transition: all 0.3s ease;
 }
 .studio-logo {
   justify-self: start;
@@ -123,6 +124,7 @@
   line-height: 1;
   color: var(--hero-orange) !important;
   text-decoration: none;
+  transition: all 0.3s ease;
 }
 .studio-logo--scrolled {
   font-size: 20px;
@@ -144,7 +146,7 @@
   letter-spacing: 0.03em;
   color: var(--hero-muted);
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: all 0.2s ease;
 }
 .studio-desktop-nav--scrolled a {
   font-size: 13px;
@@ -178,9 +180,7 @@
   letter-spacing: 0.02em;
   text-decoration: none;
   box-shadow: 0 6px 18px rgba(255, 122, 0, 0.22);
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: all 0.3s ease;
 }
 .studio-header-hire--scrolled {
   font-size: 14px;
@@ -249,7 +249,7 @@
 }
 .studio-hero-copy {
   align-self: center;
-  padding-block: 48px;
+  padding-block: 40px;
 }
 .studio-hero-copy > * {
   animation: studio-enter 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
@@ -270,7 +270,7 @@
   animation-delay: 0.3s;
 }
 .studio-hero-hello {
-  margin: 0 0 14px;
+  margin: 0 0 5px;
   font-size: 20px;
   font-weight: 500;
   letter-spacing: 0.03em;
@@ -284,7 +284,7 @@
   color: #a9a9a9;
 }
 .studio-hero h1 {
-  margin: 34px 0 0;
+  margin: 25px 0 0;
   max-width: 640px;
   font-size: clamp(40px, 4.6vw, 64px);
   font-weight: 800;
@@ -433,6 +433,11 @@
   -webkit-mask-image: linear-gradient(to bottom, #000 90%, transparent 100%);
   mask-image: linear-gradient(to bottom, #000 90%, transparent 100%);
   user-select: none;
+}
+.studio-hero-photo--color {
+  filter: none;
+  clip-path: circle(72px at var(--cursor-x, -100px) var(--cursor-y, -100px));
+  pointer-events: none;
 }
 
 @keyframes studio-enter {

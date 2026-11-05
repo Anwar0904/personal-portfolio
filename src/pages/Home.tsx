@@ -170,13 +170,16 @@ function FeaturedProjectsDeck({
     }
     dragStart.current = { x: event.clientX, pointerId: event.pointerId };
     dragged.current = false;
-    event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (!dragStart.current || dragStart.current.pointerId !== event.pointerId)
       return;
     const distance = event.clientX - dragStart.current.x;
+    if (Math.abs(distance) > 8 && !dragged.current) {
+      dragged.current = true;
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
     event.currentTarget.style.setProperty(
       "--deck-drag-x",
       `${Math.max(-96, Math.min(96, distance))}px`
@@ -189,9 +192,10 @@ function FeaturedProjectsDeck({
     const distance = event.clientX - dragStart.current.x;
     dragStart.current = null;
     event.currentTarget.style.removeProperty("--deck-drag-x");
-    if (Math.abs(distance) >= 48) {
-      dragged.current = true;
-      move(distance < 0 ? 1 : -1);
+    if (dragged.current) {
+      if (Math.abs(distance) >= 48) {
+        move(distance < 0 ? 1 : -1);
+      }
       window.setTimeout(() => {
         dragged.current = false;
       }, 0);

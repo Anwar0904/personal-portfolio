@@ -499,13 +499,7 @@
 .studio-deck-card {
   position: absolute;
   inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  padding: 0;
   overflow: hidden;
-  color: #f2f2f2;
-  text-align: left;
   background: #171717;
   border: 1px solid #303030;
   border-radius: 10px;
@@ -516,13 +510,19 @@
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 }
+.studio-deck-card-preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  color: #f2f2f2;
+  text-align: left;
+  background: transparent;
+  border: 0;
+}
 .studio-deck-card[data-position="0"] {
   z-index: 3;
   transform: translate3d(var(--deck-drag-x, 0px), 0, 0);
-  cursor: grab;
-}
-.studio-deck-card[data-position="0"]:active {
-  cursor: grabbing;
 }
 .studio-deck-card[data-position="1"] {
   z-index: 2;
@@ -532,7 +532,7 @@
   z-index: 1;
   transform: translateY(36px) scale(0.93);
 }
-.studio-deck-card:focus-visible {
+.studio-deck-card-preview:focus-visible {
   outline: 2px solid #ff7a00;
   outline-offset: 4px;
 }
@@ -574,9 +574,47 @@
     transform 0.2s ease;
 }
 .studio-deck-card[data-position="0"]:hover .studio-deck-open,
-.studio-deck-card[data-position="0"]:focus-visible .studio-deck-open {
+.studio-deck-card-preview:focus-visible .studio-deck-open {
   opacity: 1;
   transform: none;
+}
+.studio-deck-live-link {
+  position: absolute;
+  z-index: 4;
+  top: 16px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 11px;
+  color: #fff;
+  background: rgba(16, 16, 16, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 650;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+.studio-deck-card[data-position="0"]:hover .studio-deck-live-link,
+.studio-deck-card[data-position="0"]:focus-within .studio-deck-live-link {
+  opacity: 1;
+  transform: none;
+}
+.studio-deck-live-link:hover {
+  color: #ff9a3d;
+  border-color: #ff7a00;
+}
+.studio-deck-live-link:focus-visible {
+  outline: 2px solid #ff7a00;
+  outline-offset: 3px;
+  opacity: 1;
 }
 .studio-deck-caption {
   display: flex;
@@ -1848,13 +1886,18 @@
 .studio-preview {
   width: min(96vw, 1120px) !important;
   max-width: 1120px !important;
+  height: min(86dvh, 760px) !important;
+  min-height: 0 !important;
   padding: 0 !important;
   gap: 0 !important;
   display: grid !important;
+  grid-template-rows: minmax(0, 1fr);
   grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.9fr);
 }
 .studio-preview-visual {
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   background: #141414;
@@ -1864,7 +1907,7 @@
 .studio-preview-stage {
   position: relative;
   flex: 1;
-  min-height: 260px;
+  min-height: 0;
   display: grid;
   place-items: center;
   background: var(--studio-wheat, #1a1a1a);
@@ -1873,13 +1916,18 @@
   overflow: hidden;
 }
 .studio-preview-stage > .studio-img {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
   width: 100%;
   height: 100%;
-  max-height: 62dvh;
   object-fit: contain;
+  object-position: center;
 }
 .studio-preview-stage .studio-img-fallback {
-  min-height: 320px;
+  min-height: 0;
 }
 .studio-preview-arrow {
   position: absolute;
@@ -2226,8 +2274,25 @@
     position: static;
   }
   .studio-preview {
+    width: min(96vw, 680px) !important;
+    max-width: 680px !important;
     grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: 92dvh !important;
     overflow-y: auto !important;
+  }
+  .studio-preview-visual {
+    min-height: 0;
+  }
+  .studio-preview-stage {
+    flex: none;
+    height: min(48dvh, 420px);
+    min-height: 220px;
+  }
+  .studio-preview-stage .studio-img-fallback {
+    min-height: 100%;
   }
   .studio-preview-info {
     overflow: visible;
@@ -2314,6 +2379,10 @@
   .studio-preview-visual {
     padding: 14px;
   }
+  .studio-preview-stage {
+    height: min(44dvh, 360px);
+    min-height: 200px;
+  }
   .studio-preview-info {
     padding: 22px 20px 20px;
   }
@@ -2351,6 +2420,15 @@
   }
   .studio-deck-summary {
     -webkit-line-clamp: 2;
+  }
+  .studio-deck-live-link {
+    top: 10px;
+    right: 10px;
+    min-height: 34px;
+    padding-inline: 9px;
+    font-size: 11px;
+    opacity: 1;
+    transform: none;
   }
   .studio-article-dialog {
     padding: 22px !important;

@@ -165,11 +165,12 @@ function FeaturedProjectsDeck({
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0 || projects.length < 2) return;
+    if (event.target instanceof Element && event.target.closest("a")) {
+      return;
+    }
     dragStart.current = { x: event.clientX, pointerId: event.pointerId };
     dragged.current = false;
-    if (event.target instanceof Element) {
-      event.target.setPointerCapture(event.pointerId);
-    }
+    event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
@@ -238,43 +239,62 @@ function FeaturedProjectsDeck({
         {projects.map((project, index) => {
           const position =
             (index - currentIndex + projects.length) % projects.length;
+          const projectUrl = project.liveUrl || project.repoUrl;
           return (
-            <button
-              type="button"
+            <article
               key={project.id}
               className="studio-deck-card"
               data-position={position}
-              onClick={() => {
-                if (dragged.current) {
-                  dragged.current = false;
-                  return;
-                }
-                onProjectSelect(project);
-              }}
-              aria-label={`Preview ${project.title}`}
-              tabIndex={position === 0 ? 0 : -1}
             >
-              <span className="studio-deck-media">
-                <ProjectImage project={project} />
-                <span className="studio-deck-open">
-                  View project <ArrowUpRight size={16} />
-                </span>
-              </span>
-              <span className="studio-deck-caption">
-                <span>
-                  <span className="studio-deck-category">
-                    {project.category}
+              <button
+                type="button"
+                className="studio-deck-card-preview"
+                onClick={() => {
+                  if (dragged.current) {
+                    dragged.current = false;
+                    return;
+                  }
+                  onProjectSelect(project);
+                }}
+                aria-label={`Preview ${project.title}`}
+                tabIndex={position === 0 ? 0 : -1}
+              >
+                <span className="studio-deck-media">
+                  <ProjectImage project={project} />
+                  <span className="studio-deck-open">
+                    Preview project <ArrowUpRight size={16} />
                   </span>
-                  <span className="studio-deck-title">{project.title}</span>
-                  <span className="studio-deck-summary">{project.summary}</span>
                 </span>
-                <ArrowUpRight
-                  className="studio-deck-caption-arrow"
-                  size={20}
-                  aria-hidden="true"
-                />
-              </span>
-            </button>
+                <span className="studio-deck-caption">
+                  <span>
+                    <span className="studio-deck-category">
+                      {project.category}
+                    </span>
+                    <span className="studio-deck-title">{project.title}</span>
+                    <span className="studio-deck-summary">
+                      {project.summary}
+                    </span>
+                  </span>
+                  <ArrowUpRight
+                    className="studio-deck-caption-arrow"
+                    size={20}
+                    aria-hidden="true"
+                  />
+                </span>
+              </button>
+              {projectUrl && (
+                <a
+                  className="studio-deck-live-link"
+                  href={projectUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${project.liveUrl ? "Visit" : "View source for"} ${project.title}`}
+                >
+                  {project.liveUrl ? "Visit live site" : "View source"}
+                  <ArrowUpRight size={15} aria-hidden="true" />
+                </a>
+              )}
+            </article>
           );
         })}
       </div>

@@ -10,9 +10,11 @@ import {
   Mail,
   Menu,
   MessageCircle,
+  Send,
   X,
   Youtube,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -164,6 +166,9 @@ function PktClock() {
   );
 }
 
+const CONTACT_EMAIL = "au090469@gmail.com";
+const CONTACT_ENDPOINT = `https://formsubmit.co/ajax/${CONTACT_EMAIL}`;
+
 export default function Home() {
   const { data, isLoading, isError, refetch } = trpc.portfolio.public.useQuery(
     undefined,
@@ -178,10 +183,13 @@ export default function Home() {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null);
   const [subscribeEmail, setSubscribeEmail] = useState("");
+  const [sendStatus, setSendStatus] = useState<"idle" | "sending" | "sent">(
+    "idle"
+  );
   const [activeId, setActiveId] = useState("top");
 
   useEffect(() => {
-    const ids = ["work", "skills", "about", "notes", "contact"];
+    const ids = ["work", "skills", "about", "notes", "collaborate", "contact"];
     const onScroll = () => {
       setScrolled(window.scrollY > 16);
       let current = "top";
@@ -189,7 +197,7 @@ export default function Home() {
         const el = document.getElementById(id);
         if (el && el.getBoundingClientRect().top <= 140) current = id;
       });
-      setActiveId(current);
+      setActiveId(current === "contact" ? "collaborate" : current);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -275,13 +283,62 @@ export default function Home() {
     setSubscribeEmail("");
   };
 
+  const sendMessage = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    if (data.get("_honey")) return;
+
+    setSendStatus("sending");
+    try {
+      const response = await fetch(CONTACT_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          name: data.get("name"),
+          email: data.get("email"),
+          subject: data.get("subject") || "Project Inquiry",
+          message: data.get("message"),
+          _subject: `Portfolio message: ${data.get("subject") || "Project Inquiry"}`,
+          _replyto: data.get("email"),
+          _template: "table",
+          _captcha: "false",
+        }),
+      });
+      const result: unknown = await response.json();
+      if (
+        !response.ok ||
+        typeof result !== "object" ||
+        result === null ||
+        !("success" in result) ||
+        (result.success !== true && result.success !== "true")
+      ) {
+        throw new Error("Contact form service rejected the message.");
+      }
+
+      form.reset();
+      setSendStatus("sent");
+      toast.success("Message sent. I'll get back to you soon.");
+      window.setTimeout(() => setSendStatus("idle"), 6000);
+    } catch (error) {
+      setSendStatus("idle");
+      toast.error(
+        `Couldn't send your message. Please email ${CONTACT_EMAIL} directly.`
+      );
+      console.error("Failed to submit collaboration message:", error);
+    }
+  };
+
   const navItems = [
     { label: "Home", href: "#top" },
     { label: "Work", href: "#work" },
     { label: "Skills", href: "#skills" },
     { label: "About", href: "#about" },
     ...(portfolio.blogs.length ? [{ label: "Notes", href: "#notes" }] : []),
-    { label: "Contact", href: "#contact" },
+    { label: "Contact", href: "#collaborate" },
   ];
   const isActive = (href: string) => href.slice(1) === activeId;
 
@@ -683,6 +740,161 @@ export default function Home() {
         )}
 
         <section
+          id="collaborate"
+          className="studio-collab"
+          aria-labelledby="studio-collab-heading"
+        >
+          <div className="studio-container">
+            <div className="studio-collab-head">
+              <h2 id="studio-collab-heading">
+                Let's <span>Collaborate</span>
+              </h2>
+              <p>Turning complex ideas into high-performance code.</p>
+            </div>
+
+            <div className="studio-collab-grid">
+              <div className="studio-collab-side">
+                <div className="studio-collab-card">
+                  <p className="studio-collab-label">Current status</p>
+                  <p className="studio-collab-status">
+                    <span className="studio-collab-dot" aria-hidden="true" />
+                    Available for Work
+                  </p>
+                </div>
+
+                <div className="studio-collab-card">
+                  <p className="studio-collab-label">Drop a line</p>
+                  <a
+                    className="studio-collab-email"
+                    href={`mailto:${CONTACT_EMAIL}`}
+                  >
+                    {CONTACT_EMAIL}
+                  </a>
+                  <ul
+                    className="studio-collab-socials"
+                    aria-label="Social links"
+                  >
+                    <li>
+                      <a
+                        href={profile.githubUrl || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="GitHub"
+                      >
+                        <Github size={22} />
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        href={profile.linkedinUrl || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="LinkedIn"
+                      >
+                        <Linkedin size={22} />
+                      </a>
+                    </li>
+                    <li>
+                      <a href="#" aria-label="YouTube">
+                        <Youtube size={22} />
+                      </a>
+                    </li>
+                    <li>
+                      <a href="#" aria-label="Instagram">
+                        <Instagram size={22} />
+                      </a>
+                    </li>
+                    <li>
+                      <a href="#" aria-label="WhatsApp">
+                        <MessageCircle size={22} />
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="studio-collab-card">
+                  <p className="studio-collab-label">Location</p>
+                  <p className="studio-collab-place">
+                    Peshawar, Pakistan <small>PK</small>
+                  </p>
+                  <p className="studio-collab-note">Remote Available (UTC+5)</p>
+                </div>
+              </div>
+
+              <form className="studio-collab-form" onSubmit={sendMessage}>
+                <div className="studio-collab-row">
+                  <label>
+                    <span>
+                      Name <b>*</b>
+                    </span>
+                    <input
+                      name="name"
+                      type="text"
+                      required
+                      autoComplete="name"
+                      placeholder="Your Name"
+                    />
+                  </label>
+                  <label>
+                    <span>
+                      Email <b>*</b>
+                    </span>
+                    <input
+                      name="email"
+                      type="email"
+                      required
+                      autoComplete="email"
+                      placeholder="your.email@example.com"
+                    />
+                  </label>
+                </div>
+                <label>
+                  <span>Subject</span>
+                  <div className="studio-collab-subject">
+                    <input
+                      name="subject"
+                      type="text"
+                      placeholder="Project Inquiry"
+                    />
+                    <Send size={18} aria-hidden="true" />
+                  </div>
+                </label>
+                <label>
+                  <span>
+                    Message <b>*</b>
+                  </span>
+                  <textarea
+                    name="message"
+                    required
+                    rows={5}
+                    placeholder="How can I help you?"
+                  />
+                </label>
+                <input
+                  type="text"
+                  name="_honey"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  className="studio-collab-honey"
+                />
+                <button
+                  type="submit"
+                  className="studio-collab-submit"
+                  disabled={sendStatus === "sending"}
+                >
+                  {sendStatus === "sending"
+                    ? "Sending..."
+                    : sendStatus === "sent"
+                      ? "Message sent"
+                      : "Send Message"}
+                </button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <section
           id="contact"
           className="studio-cta"
           aria-labelledby="studio-contact-heading"
@@ -702,7 +914,7 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            <a className="studio-cta-button" href={`mailto:${profile.email}`}>
+            <a className="studio-cta-button" href="#collaborate">
               Start a Project <ArrowRight size={20} strokeWidth={2.4} />
             </a>
           </div>

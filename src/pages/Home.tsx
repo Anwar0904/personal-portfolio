@@ -51,6 +51,7 @@ const fallbackProfile = {
 
 // Transparent-background portrait used in the hero (public/images/anwar-hero.png).
 const heroPortrait = "/images/anwar-hero.png";
+const aboutPortrait = "/images/anwar-about.png";
 // Drop your CV into public/ with this name to enable the "Download CV" button.
 const cvUrl = "/Anwar-Ul-Haq-CV.pdf";
 
@@ -691,11 +692,11 @@ export default function Home() {
                 const bounds = event.currentTarget.getBoundingClientRect();
                 event.currentTarget.style.setProperty(
                   "--cursor-x",
-                  `${event.clientX - bounds.left}px`,
+                  `${event.clientX - bounds.left}px`
                 );
                 event.currentTarget.style.setProperty(
                   "--cursor-y",
-                  `${event.clientY - bounds.top}px`,
+                  `${event.clientY - bounds.top}px`
                 );
               }}
               onPointerLeave={event => {
@@ -792,45 +793,112 @@ export default function Home() {
           className="studio-about studio-section"
           aria-labelledby="studio-about-heading"
         >
-          <div className="studio-container studio-about-grid">
-            <div className="studio-about-heading-block">
-              <h2 id="studio-about-heading">How I work</h2>
-              <p>{profile.bio}</p>
-              <div className="studio-about-socials">
-                {profile.githubUrl && (
-                  <a
-                    href={profile.githubUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Github size={17} /> GitHub
-                  </a>
-                )}
-                {profile.linkedinUrl && (
-                  <a
-                    href={profile.linkedinUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Linkedin size={17} /> LinkedIn
-                  </a>
-                )}
-              </div>
-            </div>
-            <ol
-              className="studio-approach-list"
-              style={{ listStyle: "none", margin: 0, padding: 0 }}
-            >
-              {approach.map(([title, description], index) => (
-                <li className="studio-approach-row" key={title}>
-                  <span>{index + 1}</span>
-                  <div>
-                    <h3>{title}</h3>
-                    <p>{description}</p>
+          <div className="studio-container">
+            <div className="studio-about-panel">
+              <div className="studio-about-top">
+                <div className="studio-about-copy">
+                  <p className="studio-about-kicker">THE WAY I BUILD</p>
+                  <h2 id="studio-about-heading">
+                    How I <span>work</span>
+                  </h2>
+                  <p className="studio-about-intro">
+                    Thoughtful decisions. Practical engineering. Better
+                    outcomes.
+                  </p>
+                  <p className="studio-about-bio">{profile.bio}</p>
+
+                  <div className="studio-about-socials">
+                    {profile.githubUrl && (
+                      <a
+                        href={profile.githubUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Github size={17} /> GitHub
+                        <ArrowUpRight size={14} aria-hidden="true" />
+                      </a>
+                    )}
+                    {profile.linkedinUrl && (
+                      <a
+                        href={profile.linkedinUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Linkedin size={17} /> LinkedIn
+                        <ArrowUpRight size={14} aria-hidden="true" />
+                      </a>
+                    )}
                   </div>
+                </div>
+
+                <div className="studio-about-visual" aria-hidden="true">
+                  <div className="studio-about-orbit studio-about-orbit--outer" />
+                  <div className="studio-about-orbit studio-about-orbit--inner" />
+                  <div className="studio-about-photo">
+                    <img
+                      src={aboutPortrait}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
+                  <div className="studio-about-float studio-about-float--top">
+                    <span>THOUGHTFUL BY DESIGN</span>
+                  </div>
+                  <div className="studio-about-float studio-about-float--bottom">
+                    <small>BUILD PHILOSOPHY</small>
+                    <strong>
+                      Clarity before
+                      <br />
+                      complexity.
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="studio-about-process">
+                <div className="studio-about-process-heading">
+                  <span>HOW THE WORK MOVES</span>
+                  <p>
+                    Clear stages, with room to adapt as the problem becomes
+                    clearer.
+                  </p>
+                </div>
+                <ol className="studio-about-steps">
+                  {approach.map(([title, description], index) => (
+                    <li className="studio-about-step" key={title}>
+                      <span className="studio-about-step-number">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <h3>{title}</h3>
+                      <p>{description}</p>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              <ul
+                className="studio-about-stats"
+                aria-label="Portfolio overview"
+              >
+                <li>
+                  <strong>
+                    {String(portfolio.projects.length).padStart(2, "0")}
+                  </strong>
+                  <span>Projects showcased</span>
                 </li>
-              ))}
-            </ol>
+                <li>
+                  <strong>
+                    {String(portfolio.skills.length).padStart(2, "0")}
+                  </strong>
+                  <span>Technologies and tools</span>
+                </li>
+                <li>
+                  <strong>{String(approach.length).padStart(2, "0")}</strong>
+                  <span>Stages in my process</span>
+                </li>
+              </ul>
+            </div>
           </div>
         </section>
 

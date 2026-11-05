@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
-  Check,
-  Copy,
+  Cpu,
   Github,
+  Instagram,
   Linkedin,
   Mail,
   Menu,
+  MessageCircle,
   X,
+  Youtube,
 } from "lucide-react";
-import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -126,6 +127,43 @@ function ProjectImage({
   );
 }
 
+const footerNav = [
+  ["Home", "#top"],
+  ["About Me", "#about"],
+  ["Recent Projects", "#work"],
+  ["Technical Skills", "#skills"],
+];
+
+const footerExpertise = [
+  "Full-Stack Web Development",
+  "React.js & Modern UI",
+  "Node.js & REST APIs",
+  "Applied AI Engineering",
+];
+
+function PktClock() {
+  const read = () =>
+    new Date().toLocaleTimeString("en-US", {
+      timeZone: "Asia/Karachi",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  const [time, setTime] = useState(read);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setTime(read()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="studio-clock" aria-label="Current time in Pakistan">
+      <span className="studio-clock-dot" aria-hidden="true" />
+      PKT: {time}
+    </div>
+  );
+}
+
 export default function Home() {
   const { data, isLoading, isError, refetch } = trpc.portfolio.public.useQuery(
     undefined,
@@ -139,7 +177,7 @@ export default function Home() {
   const [filter, setFilter] = useState("All");
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [subscribeEmail, setSubscribeEmail] = useState("");
   const [activeId, setActiveId] = useState("top");
 
   useEffect(() => {
@@ -229,15 +267,12 @@ export default function Home() {
     [portfolio.caseStudies.length, "Case studies"],
   ].filter(([count]) => Number(count) > 0) as [number, string][];
 
-  const copyEmail = async () => {
-    try {
-      await navigator.clipboard.writeText(profile.email);
-      setCopied(true);
-      toast.success("Email copied");
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Couldn't copy. Use the email link instead.");
-    }
+  const subscribe = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const email = subscribeEmail.trim();
+    if (!email) return;
+    window.location.href = `mailto:${profile.email}?subject=${encodeURIComponent("Subscribe me")}&body=${encodeURIComponent(`Please add ${email} to your updates list.`)}`;
+    setSubscribeEmail("");
   };
 
   const navItems = [
@@ -649,68 +684,135 @@ export default function Home() {
 
         <section
           id="contact"
-          className="studio-contact"
+          className="studio-cta"
           aria-labelledby="studio-contact-heading"
         >
-          <div className="studio-container studio-contact-main">
-            <h2 id="studio-contact-heading">Let's build something together.</h2>
-            <p className="studio-contact-lead">
-              Tell me what you're working on or what's getting in the way. I
-              usually reply within a couple of days.
-            </p>
-            <div className="studio-contact-actions">
-              <a
-                href={`mailto:${profile.email}`}
-                className="studio-contact-email"
-              >
-                {profile.email}
-              </a>
-              <button
-                type="button"
-                className="studio-copy-button"
-                onClick={copyEmail}
-                aria-label="Copy email address"
-              >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-                {copied ? "Copied" : "Copy"}
-              </button>
+          <div className="studio-container studio-cta-inner">
+            <div className="studio-cta-copy">
+              <span className="studio-cta-icon" aria-hidden="true">
+                <Cpu size={26} strokeWidth={1.6} />
+              </span>
+              <div>
+                <h2 id="studio-contact-heading">
+                  Ready to build something amazing?
+                </h2>
+                <p>
+                  Let's architect and launch your next high-performance Web or
+                  Software solution together.
+                </p>
+              </div>
             </div>
-          </div>
-          <footer className="studio-container studio-footer">
-            <a
-              href="#top"
-              className="studio-footer-logo"
-              aria-label="Back to top"
-            >
-              anwar<span>.</span>dev
+            <a className="studio-cta-button" href={`mailto:${profile.email}`}>
+              Start a Project <ArrowRight size={20} strokeWidth={2.4} />
             </a>
-            <span>
-              © {new Date().getFullYear()} {profile.name}
-            </span>
-            <div className="studio-footer-links">
-              {profile.githubUrl && (
-                <a
-                  href={profile.githubUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  GitHub
-                </a>
-              )}
-              {profile.linkedinUrl && (
-                <a
-                  href={profile.linkedinUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  LinkedIn
-                </a>
-              )}
-              <a href="#top">Back to top</a>
-            </div>
-          </footer>
+          </div>
         </section>
       </main>
+
+      <footer className="studio-site-footer">
+        <div className="studio-container studio-footer-grid">
+          <div className="studio-footer-brand">
+            <p className="studio-footer-arabic" lang="ar" dir="rtl">
+              انور الحق
+            </p>
+            <p className="studio-footer-subname">{profile.name}</p>
+            <p className="studio-footer-bio">
+              Bridging the gap between <strong>Complex Logic</strong> and{" "}
+              <strong>User Experience</strong>. I build software that is smart,
+              scalable, and intuitive.
+            </p>
+            <PktClock />
+            <ul className="studio-footer-socials" aria-label="Social links">
+              <li>
+                <a
+                  href={profile.githubUrl || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="GitHub"
+                >
+                  <Github size={22} />
+                </a>
+              </li>
+              <li>
+                <a
+                  href={profile.linkedinUrl || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="LinkedIn"
+                >
+                  <Linkedin size={22} />
+                </a>
+              </li>
+              <li>
+                <a href="#" aria-label="Instagram">
+                  <Instagram size={22} />
+                </a>
+              </li>
+              <li>
+                <a href="#" aria-label="YouTube">
+                  <Youtube size={22} />
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <nav className="studio-footer-col" aria-label="Footer navigation">
+            <h3>Navigation</h3>
+            <ul>
+              {footerNav.map(([label, href]) => (
+                <li key={label}>
+                  <a href={href}>{label}</a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <div className="studio-footer-col">
+            <h3>Expertise</h3>
+            <ul className="studio-footer-expertise">
+              {footerExpertise.map(item => (
+                <li key={item}>
+                  <a href="#">{item}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="studio-footer-col">
+            <h3>Join the circle</h3>
+            <p className="studio-footer-lead">
+              Subscribe for project releases, web dev updates, and frontend
+              engineering logs.
+            </p>
+            <form className="studio-subscribe" onSubmit={subscribe}>
+              <input
+                type="email"
+                required
+                value={subscribeEmail}
+                onChange={event => setSubscribeEmail(event.target.value)}
+                placeholder="Enter your email"
+                aria-label="Email address"
+              />
+              <button type="submit">Subscribe</button>
+            </form>
+            <ul className="studio-footer-contact">
+              <li>
+                <a href={`mailto:${profile.email}`}>
+                  <Mail size={20} /> {profile.email}
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <MessageCircle size={20} /> Chat on WhatsApp
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div className="studio-footer-bottom">
+          © {new Date().getFullYear()} {profile.name}. All rights reserved.
+        </div>
+      </footer>
 
       {/* Project preview: image stage, filmstrip, details. Arrow keys move through the current filter. */}
       <Dialog
